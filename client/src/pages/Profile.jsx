@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Mail,
   GitBranch,
@@ -62,11 +63,53 @@ const Profile = () => {
   };
 
   const [showRecommendations, setShowRecommendations] = useState(false);
-  const [recommendations, setRecommendations] = useState(null);
-  const [recommendationLoading, setRecommendationLoading] = useState(false);
-  const [recommendationProvider, setRecommendationProvider] = useState(null);
-  const [recommendationCached, setRecommendationCached] = useState(false);
-  const [recommendationError, setRecommendationError] = useState(null);
+  const queryClient = useQueryClient();
+  const token = localStorage.getItem("token");
+
+  const {
+    data: recData,
+    isFetching: recFetching,
+    error: recError,
+    refetch,
+  } = useQuery({
+    queryKey: ["recommendations"],
+    queryFn: async () => {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/recommendations`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || json.error || "Failed to fetch recommendations");
+      return json;
+    },
+    enabled: false,
+    retry: false,
+  });
+
+  const refreshMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/recommendations/refresh`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to refresh recommendations");
+      return json;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["recommendations"], data);
+      setShowRecommendations(true);
+    },
+  });
+
+  useEffect(() => {
+    if (recData) setShowRecommendations(true);
+  }, [recData]);
+
+  const recommendations = recData?.data;
+  const recommendationProvider = recData?.provider;
+  const recommendationCached = recData?.cached;
+  const recommendationLoading = recFetching || refreshMutation.isPending;
+  const recommendationError = recError?.message || refreshMutation.error?.message || null;
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -96,38 +139,6 @@ const Profile = () => {
     login(updatedUser, localStorage.getItem("token"));
   };
 
-  const fetchRecommendations = async (forceRefresh = false) => {
-    const token = localStorage.getItem("token");
-    setRecommendationLoading(true);
-    setRecommendationError(null);
-    try {
-      const endpoint = forceRefresh
-        ? `${import.meta.env.VITE_BACKEND_URL}/api/recommendations/refresh`
-        : `${import.meta.env.VITE_BACKEND_URL}/api/recommendations`;
-      const res = await fetch(endpoint, {
-        method: forceRefresh ? "POST" : "GET",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setRecommendations(data.data);
-        setRecommendationProvider(data.provider);
-        setRecommendationCached(data.cached);
-        setShowRecommendations(true);
-      } else if (res.status === 400) {
-        setRecommendationError(data.message || "Please complete your profile first");
-      } else if (res.status === 429) {
-        setRecommendationError(data.error || "Please try again later");
-      } else {
-        setRecommendationError(data.error || "Failed to fetch recommendations");
-      }
-    } catch (err) {
-      console.error("Error fetching recommendations:", err);
-      setRecommendationError("Connection error. Please try again.");
-    } finally {
-      setRecommendationLoading(false);
-    }
-  };
 
   const yearSuffix = (y) => {
     if (y === 1) return "st";
@@ -356,7 +367,7 @@ const Profile = () => {
           {showRecommendations && (
             <div className="flex items-center gap-2">
               <button
-                onClick={() => fetchRecommendations(true)}
+                onClick={() => refreshMutation.mutate()}
                 disabled={recommendationLoading}
                 className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100 dark:bg-transparent dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
               >
@@ -384,7 +395,7 @@ const Profile = () => {
               </div>
             )}
             <button
-              onClick={() => fetchRecommendations(false)}
+              onClick={() => refetch()}
               disabled={recommendationLoading}
               className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors disabled:opacity-60"
             >
