@@ -36,6 +36,7 @@ const DashboardLayout = () => {
     return localStorage.getItem("studentSidebarCollapsed") === "true";
   });
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const drawerRef = useRef(null);
 
   useEffect(() => {
@@ -56,10 +57,13 @@ const DashboardLayout = () => {
     setMobileOpen(false);
   }, [navigate]);
 
-  const handleLogout = () => {
+  const handleLogout = () => setShowLogoutModal(true);
+
+  const confirmLogout = () => {
     logout();
     setTimeout(() => navigate("/login"), 50);
   };
+
 
   const SidebarContent = ({ isMobile = false }) => (
     <div className="flex flex-col h-full">
@@ -246,6 +250,29 @@ const DashboardLayout = () => {
           <Outlet />
         </main>
       </div>
+
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 w-80 space-y-4">
+            <h2 className="text-base font-semibold text-slate-800 dark:text-white">Log out?</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Are you sure you want to log out of EduHub?</p>
+            <div className="flex gap-3 justify-end pt-1">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="px-4 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLogout}
+                className="px-4 py-2 text-sm rounded-lg bg-red-500 hover:bg-red-600 text-white font-medium"
+              >
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
