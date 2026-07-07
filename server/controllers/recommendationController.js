@@ -98,13 +98,13 @@ export const refreshRecommendations = async (req, res) => {
       const daysSinceRefresh =
         (new Date() - new Date(user.recommendations.lastManualRefresh)) /
         (1000 * 60 * 60 * 24);
-      const daysRemaining = Math.ceil(7 - daysSinceRefresh);
+      const daysRemaining = Math.ceil(5 - daysSinceRefresh);
 
       return res.status(429).json({
         error: `Refresh available in ${daysRemaining} day${daysRemaining > 1 ? "s" : ""}`,
         nextRefreshDate: new Date(
           new Date(user.recommendations.lastManualRefresh).getTime() +
-            7 * 24 * 60 * 60 * 1000
+            5 * 24 * 60 * 60 * 1000
         ),
       });
     }

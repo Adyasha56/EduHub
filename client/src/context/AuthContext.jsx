@@ -1,10 +1,12 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const queryClient = useQueryClient();
 
   // On app start, check localStorage
   useEffect(() => {
@@ -63,6 +65,7 @@ const AuthProvider = ({ children }) => {
       localStorage.removeItem("user");
       localStorage.removeItem("token");
       setUser(null);
+      queryClient.clear();
     }
   };
 

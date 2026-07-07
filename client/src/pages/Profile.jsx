@@ -72,7 +72,7 @@ const Profile = () => {
     error: recError,
     refetch,
   } = useQuery({
-    queryKey: ["recommendations"],
+    queryKey: ["recommendations", user?.id],
     queryFn: async () => {
       const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/recommendations`, {
         headers: { Authorization: `Bearer ${token}` },

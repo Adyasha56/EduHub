@@ -41,10 +41,21 @@ export const shouldRegenerate = (user) => {
   const snapshot = user.recommendations.profileSnapshot;
   if (!snapshot) return true;
 
+  const currentInterests = [
+    ...(user.interestedFields || []),
+    ...(user.customInterests || []),
+  ].sort().join(",");
+
+  const snapshotInterests = [
+    ...(snapshot.interestedFields || []),
+    ...(snapshot.customInterests || []),
+  ].sort().join(",");
+
   const changes = [
     user.careerGoal !== snapshot.careerGoal,
     user.year !== snapshot.year,
     (user.skills?.length || 0) - (snapshot.skills?.length || 0) >= 3,
+    currentInterests !== snapshotInterests,
   ];
 
   if (changes.some((c) => c)) {
@@ -56,14 +67,14 @@ export const shouldRegenerate = (user) => {
   return false;
 };
 
-// Check refresh rate limit (7 days)
+// Check refresh rate limit (5 days)
 export const canRefreshNow = (user) => {
   if (!user.recommendations?.lastManualRefresh) return true;
 
   const lastRefresh = new Date(user.recommendations.lastManualRefresh);
   const daysSinceRefresh = (new Date() - lastRefresh) / (1000 * 60 * 60 * 24);
 
-  return daysSinceRefresh >= 7;
+  return daysSinceRefresh >= 5;
 };
 
 // Create prompt for LLM
@@ -73,7 +84,7 @@ const createPrompt = (user) => {
     [...(user.interestedFields || []), ...(user.customInterests || [])]
       .join(", ") || "General";
 
-  return `You are an expert career advisor for engineering students. Based on the following profile, generate highly personalized learning recommendations in JSON format.
+  return `You are an expert career advisor for engineering students. Generate UNIQUE, highly personalized learning recommendations based strictly on the user's interests and career goal. Every recommendation must feel tailor-made for this specific person.
 
 User Profile:
 - Name: ${user.name}
@@ -83,58 +94,54 @@ User Profile:
 - Current Skills: ${skillsList}
 - Interests: ${interestsList}
 
-Generate recommendations in this exact JSON structure:
+IMPORTANT: Base ALL phase titles, topics, projects, and resources directly on the user's interests (${interestsList}) and career goal. Do NOT use generic titles like "Foundation Phase" or "Core Skills". Use descriptive, interest-specific titles (e.g. "Web Dev Fundamentals", "AI & ML Basics", etc.).
+
+Return ONLY this JSON structure with no markdown or extra text:
 {
   "learningPath": {
-    "phase1": { 
-      "title": "Foundation Phase",
-      "duration": "1-2 months", 
-      "topics": ["topic1", "topic2", "topic3"],
-      "description": "brief description"
+    "phase1": {
+      "title": "<interest-specific title>",
+      "duration": "<realistic duration>",
+      "topics": ["<specific topic 1>", "<specific topic 2>", "<specific topic 3>"],
+      "description": "<1-2 lines specific to their goal>"
     },
-    "phase2": { 
-      "title": "Core Skills",
-      "duration": "2-3 months", 
-      "topics": ["topic1", "topic2", "topic3"],
-      "description": "brief description"
+    "phase2": {
+      "title": "<interest-specific title>",
+      "duration": "<realistic duration>",
+      "topics": ["<specific topic 1>", "<specific topic 2>", "<specific topic 3>"],
+      "description": "<1-2 lines specific to their goal>"
     },
-    "phase3": { 
-      "title": "Advanced Phase",
-      "duration": "2-3 months", 
-      "topics": ["topic1", "topic2"],
-      "description": "brief description"
+    "phase3": {
+      "title": "<interest-specific title>",
+      "duration": "<realistic duration>",
+      "topics": ["<specific topic 1>", "<specific topic 2>"],
+      "description": "<1-2 lines specific to their goal>"
     }
   },
-  "trendingSkills": ["skill1", "skill2", "skill3", "skill4", "skill5"],
+  "trendingSkills": ["<skill relevant to interests>", "<skill>", "<skill>", "<skill>", "<skill>"],
   "projectIdeas": [
-    { 
-      "title": "Project Name",
-      "difficulty": "Beginner|Intermediate|Advanced", 
-      "skills": ["skill1", "skill2"],
-      "description": "brief description",
-      "estimatedDuration": "2-3 weeks"
+    {
+      "title": "<unique project name tied to interests>",
+      "difficulty": "Beginner|Intermediate|Advanced",
+      "skills": ["<skill1>", "<skill2>"],
+      "description": "<specific description>",
+      "estimatedDuration": "<duration>"
     },
-    { 
-      "title": "Project Name 2",
-      "difficulty": "Intermediate", 
-      "skills": ["skill1", "skill2"],
-      "description": "brief description",
-      "estimatedDuration": "3-4 weeks"
+    {
+      "title": "<another unique project>",
+      "difficulty": "Intermediate",
+      "skills": ["<skill1>", "<skill2>"],
+      "description": "<specific description>",
+      "estimatedDuration": "<duration>"
     }
   ],
   "resources": [
-    { "name": "Resource Name", "type": "course|book|tutorial|documentation", "url": "https://...", "free": true },
-    { "name": "Resource Name 2", "type": "course", "url": "https://...", "free": false }
+    { "name": "<resource name>", "type": "course|book|tutorial|documentation", "url": "https://...", "free": true },
+    { "name": "<resource name>", "type": "course", "url": "https://...", "free": false }
   ],
-  "exploreAreas": ["area1", "area2", "area3"],
-  "careerInsights": "A 2-3 line paragraph about job market trends, expected roles, and companies actively hiring for this career goal."
-}
-
-Ensure:
-1. Recommendations are specific to their career goal and aim
-2. Skills align with their branch and year
-3. All URLs are real and valid
-4. Return ONLY valid JSON, no markdown or extra text`;
+  "exploreAreas": ["<area tied to interests>", "<area>", "<area>"],
+  "careerInsights": "<2-3 lines about job market, roles, and companies for this specific career goal and interest set>"
+}`;
 };
 
 // Generate recommendations via Gemini
@@ -176,7 +183,7 @@ export const generateViaGroq = async (user) => {
           content: createPrompt(user),
         },
       ],
-      temperature: 0.7,
+      temperature: 0.9,
       max_tokens: 2048,
     });
 
@@ -287,6 +294,8 @@ export const generateRecommendations = async (user, forceRefresh = false) => {
       careerGoal: user.careerGoal,
       skills: user.skills?.map((s) => s.name) || [],
       year: user.year,
+      interestedFields: user.interestedFields || [],
+      customInterests: user.customInterests || [],
     };
 
     const now = new Date();
