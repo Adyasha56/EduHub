@@ -148,7 +148,7 @@ Return ONLY this JSON structure with no markdown or extra text:
 export const generateViaGemini = async (user) => {
   try {
     console.log("Attempting to generate recommendations via Gemini...");
-    const model = gemini.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = gemini.getGenerativeModel({ model: "gemini-3.5-flash" });
 
     const prompt = createPrompt(user);
     const response = await model.generateContent(prompt);
