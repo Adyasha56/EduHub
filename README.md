@@ -1,5 +1,11 @@
 # EduHub — College Resource Platform
 
+> **IMPORTANT — Gemini API Key Migration**
+>
+> Google AI Studio has deprecated legacy `AIza...` Traffic Keys in favor of new `AQ...` Authentication Keys. Older models (`gemini-2.0-flash`, `gemini-2.5-flash`) return a **404 "model no longer available"** error when called with a new `AQ` key.
+>
+> **Fix:** Use `gemini-3.5-flash` (or any `gemini-3.x` model) and set your new `AQ...` key as `GEMINI_API_KEY` in `server/.env`.
+
 A full-stack web application built for engineering students to access question papers, placement records, a peer community, and AI-powered learning path recommendations — all in one place.
 
 ---
