@@ -74,6 +74,10 @@ export const getRecommendations = async (req, res) => {
       return res.status(429).json({ error: err.message });
     }
 
+    if (err.message === "RATE_LIMITED") {
+      return res.status(503).json({ error: "The AI system is temporarily busy. Please try again in a few minutes." });
+    }
+
     return res.status(500).json({ error: "Failed to generate recommendations" });
   }
 };
@@ -124,6 +128,11 @@ export const refreshRecommendations = async (req, res) => {
     });
   } catch (err) {
     console.error("Refresh recommendations error:", err.message);
+
+    if (err.message === "RATE_LIMITED") {
+      return res.status(503).json({ error: "The AI system is temporarily busy. Please try again in a few minutes." });
+    }
+
     return res.status(500).json({ error: "Failed to refresh recommendations" });
   }
 };

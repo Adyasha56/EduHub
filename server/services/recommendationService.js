@@ -166,6 +166,10 @@ export const generateViaGemini = async (user) => {
       provider: "gemini",
     };
   } catch (err) {
+    if (err.status === 429 || err.message?.includes("429") || err.message?.toLowerCase().includes("quota")) {
+      console.warn("Gemini rate limit hit (429):", err.message);
+      throw new Error("RATE_LIMITED");
+    }
     console.error("Gemini generation failed:", err.message);
     return null;
   }
@@ -274,7 +278,11 @@ export const generateRecommendations = async (user, forceRefresh = false) => {
 
     // Priority: Gemini → Groq → Rule-based
     if (process.env.GEMINI_API_KEY) {
-      result = await generateViaGemini(user);
+      try {
+        result = await generateViaGemini(user);
+      } catch (err) {
+        if (err.message === "RATE_LIMITED") throw err;
+      }
     }
 
     if (!result && process.env.GROQ_API_KEY) {
