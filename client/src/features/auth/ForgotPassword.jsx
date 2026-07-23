@@ -46,7 +46,7 @@ const ForgotPassword = () => {
 
   const showToast = (type, message) => {
     setToast({ show: true, type, message });
-    setTimeout(() => setToast({ show: false, type: "", message: "" }), 3000);
+    setTimeout(() => setToast({ show: false, type: "", message: "" }), type === "error" ? 5000 : 3000);
   };
 
   const handleSubmit = async (e) => {
@@ -156,7 +156,7 @@ const ResetPasswordForm = ({ email, resetToken }) => {
 
   const showToast = (type, message) => {
     setToast({ show: true, type, message });
-    setTimeout(() => setToast({ show: false, type: "", message: "" }), 3000);
+    setTimeout(() => setToast({ show: false, type: "", message: "" }), type === "error" ? 5000 : 3000);
   };
 
   const handleChange = (e) =>
