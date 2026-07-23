@@ -4,17 +4,33 @@ import Admin from '../models/Admin.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
+const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
 // Helper to generate token
 const generateToken = (id, role, year, branch) => {
   return jwt.sign({ id, role, year, branch }, process.env.JWT_SECRET, {
-    expiresIn: '2d'
+    expiresIn: '8h'
   });
+};
+
+// Check email availability
+export const checkEmailAvailability = async (req, res) => {
+  const { email } = req.query;
+  if (!email || !isValidEmail(email)) {
+    return res.status(400).json({ message: 'Invalid email' });
+  }
+  const exists = await User.findOne({ email: email.toLowerCase() });
+  return res.status(200).json({ available: !exists });
 };
 
 // Student Register
 export const registerStudent = async (req, res) => {
   try {
     const { name, email, password, year, branch } = req.body;
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: 'Please enter a valid email address.' });
+    }
 
     // Password strength validation
     const passwordRules = [
@@ -57,6 +73,10 @@ export const registerStudent = async (req, res) => {
 export const loginStudent = async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: 'Please enter a valid email address.' });
+    }
 
     const user = await User.findOne({ email });
     if (!user || !(await user.matchPassword(password))) {
