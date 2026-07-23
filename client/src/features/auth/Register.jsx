@@ -12,8 +12,36 @@ const Register = () => {
     year: "",
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [emailChecking, setEmailChecking] = useState(false);
+  const [emailAvailable, setEmailAvailable] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  useEffect(() => {
+    if (!isValidEmail(formData.email)) {
+      setEmailAvailable(null);
+      return;
+    }
+    setEmailChecking(true);
+    setEmailAvailable(null);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/check-email?email=${encodeURIComponent(formData.email)}`);
+        const data = await res.json();
+        setEmailAvailable(data.available);
+        if (!data.available) setEmailError("This email is already registered.");
+        else setEmailError("");
+      } catch {
+        setEmailAvailable(null);
+      } finally {
+        setEmailChecking(false);
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [formData.email]);
   const [toast, setToast] = useState({ show: false, type: "", message: "" });
   const [coldStartBanner, setColdStartBanner] = useState(true);
 
@@ -24,7 +52,7 @@ const Register = () => {
 
   const showToast = (type, message) => {
     setToast({ show: true, type, message });
-    setTimeout(() => setToast({ show: false, type: "", message: "" }), 3000);
+    setTimeout(() => setToast({ show: false, type: "", message: "" }), type === "error" ? 5000 : 3000);
   };
 
   const handleChange = (e) => {
@@ -42,6 +70,14 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isValidEmail(formData.email)) {
+      setEmailError("Please enter a valid email address.");
+      return;
+    }
+    if (emailAvailable === false) {
+      setEmailError("This email is already registered.");
+      return;
+    }
     if (!isPasswordValid) {
       showToast("error", "Please meet all password requirements.");
       return;
@@ -139,16 +175,29 @@ const Register = () => {
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 Email
               </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                placeholder="you@example.com"
-                required
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={(e) => { handleChange(e); setEmailError(""); setEmailAvailable(null); }}
+                  onBlur={() => {
+                    if (formData.email && !isValidEmail(formData.email))
+                      setEmailError("Please enter a valid email address.");
+                  }}
+                  className={`w-full px-3.5 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition pr-9 ${emailError ? "border-red-400" : emailAvailable === true ? "border-green-400" : "border-slate-300"}`}
+                  placeholder="you@example.com"
+                  required
+                  disabled={isLoading}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">
+                  {emailChecking && <Loader2 className="w-4 h-4 animate-spin text-slate-400" />}
+                  {!emailChecking && emailAvailable === true && <CheckCircle className="w-4 h-4 text-green-500" />}
+                  {!emailChecking && emailAvailable === false && <XCircle className="w-4 h-4 text-red-500" />}
+                </span>
+              </div>
+              {emailError && <p className="mt-1 text-xs text-red-500">{emailError}</p>}
+              {!emailError && emailAvailable === true && <p className="mt-1 text-xs text-green-600">Email is available</p>}
             </div>
 
             <div>
