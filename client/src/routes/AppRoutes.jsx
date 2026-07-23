@@ -15,7 +15,7 @@ import Placements from "../pages/Placements";
 import Dashboard from "../pages/Dashboard";
 import Community from "../pages/Community";
 import Notifications from "../pages/Notifications";
-// import NotFound from "../pages/NotFound";
+import NotFound from "../pages/NotFound";
 
 const AppRoutes = () => {
   return (
@@ -41,7 +41,7 @@ const AppRoutes = () => {
       {/* Admin routes (separate layout) */}
       <Route path="/admin/*" element={<AdminRoutes />} />
    
-      {/* <Route path="*" element={<NotFound />} />  */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };
