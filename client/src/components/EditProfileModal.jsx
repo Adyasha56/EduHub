@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { X, User, Camera } from "lucide-react";
 import SkillInput from "./SkillInput";
 import InterestSelector from "./InterestSelector";
+import useFocusTrap from "../hooks/useFocusTrap";
 
 const EditProfileModal = ({ isOpen, onClose, user, onSave }) => {
   const [formData, setFormData] = useState({
@@ -24,6 +25,8 @@ const EditProfileModal = ({ isOpen, onClose, user, onSave }) => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
   const fileInputRef = useRef(null);
+  const modalRef = useRef(null);
+  useFocusTrap(modalRef, isOpen);
 
   const branches = [
     "Computer Science (CSE)",
@@ -117,6 +120,7 @@ const EditProfileModal = ({ isOpen, onClose, user, onSave }) => {
       onClick={onClose}
     >
       <div
+        ref={modalRef}
         className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-lg max-h-[88vh] flex flex-col border border-slate-200 dark:border-slate-700"
         onClick={(e) => e.stopPropagation()}
       >

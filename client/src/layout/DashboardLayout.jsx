@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Outlet, NavLink, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import useFocusTrap from "../hooks/useFocusTrap";
 import {
   LayoutDashboard,
   FileText,
@@ -38,6 +39,8 @@ const DashboardLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const drawerRef = useRef(null);
+  const logoutModalRef = useRef(null);
+  useFocusTrap(logoutModalRef, showLogoutModal);
 
   useEffect(() => {
     localStorage.setItem("studentSidebarCollapsed", collapsed);
@@ -253,7 +256,7 @@ const DashboardLayout = () => {
 
       {showLogoutModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 w-80 space-y-4">
+          <div ref={logoutModalRef} className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 w-80 space-y-4">
             <h2 className="text-base font-semibold text-slate-800 dark:text-white">Log out?</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">Are you sure you want to log out of EduHub?</p>
             <div className="flex gap-3 justify-end pt-1">
