@@ -1,5 +1,6 @@
 // middleware/authMiddleware.js
 import jwt from "jsonwebtoken";
+import Admin from "../models/Admin.js";
 
 // Middleware to protect routes (authenticated users only) - FOR ALL USERS
 export const protect = async (req, res, next) => {
@@ -69,17 +70,24 @@ export const protectAdmin = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     // console.log("DECODED TOKEN:", decoded);
     
-    // Check if user has admin role
+    // Check if user has admin role in JWT
     if (decoded.role !== 'admin') {
-      // console.log("Not admin role:", decoded.role);
-      return res.status(403).json({ 
+      return res.status(403).json({
         success: false,
-        message: 'Admin access required' 
+        message: 'Admin access required'
+      });
+    }
+
+    // Verify admin still exists in DB (catches demoted/deleted admins)
+    const admin = await Admin.findById(decoded.id).select('_id');
+    if (!admin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin account not found or has been revoked',
       });
     }
 
     req.user = decoded;
-    // console.log("ADMIN AUTH SUCCESS - User set:", req.user);
     next();
   } catch (error) {
     console.error("ADMIN AUTH ERROR:", error);
