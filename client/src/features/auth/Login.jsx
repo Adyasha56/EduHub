@@ -8,8 +8,11 @@ const Login = () => {
   const { login } = useAuth();
 
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [emailError, setEmailError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const [toast, setToast] = useState({ show: false, type: "", message: "" });
   const [coldStartBanner, setColdStartBanner] = useState(true);
 
@@ -20,7 +23,7 @@ const Login = () => {
 
   const showToast = (type, message) => {
     setToast({ show: true, type, message });
-    setTimeout(() => setToast({ show: false, type: "", message: "" }), 3000);
+    setTimeout(() => setToast({ show: false, type: "", message: "" }), type === "error" ? 5000 : 3000);
   };
 
   const handleChange = (e) => {
@@ -29,6 +32,11 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isValidEmail(formData.email)) {
+      setEmailError("Please enter a valid email address.");
+      return;
+    }
+    setEmailError("");
     setIsLoading(true);
     try {
       const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, {
@@ -111,12 +119,17 @@ const Login = () => {
                 type="email"
                 name="email"
                 value={formData.email}
-                onChange={handleChange}
-                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                onChange={(e) => { handleChange(e); setEmailError(""); }}
+                onBlur={() => {
+                  if (formData.email && !isValidEmail(formData.email))
+                    setEmailError("Please enter a valid email address.");
+                }}
+                className={`w-full px-3.5 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${emailError ? "border-red-400" : "border-slate-300"}`}
                 placeholder="you@example.com"
                 required
                 disabled={isLoading}
               />
+              {emailError && <p className="mt-1 text-xs text-red-500">{emailError}</p>}
             </div>
 
             <div>
