@@ -111,6 +111,14 @@ const Profile = () => {
   const recommendationLoading = recFetching || refreshMutation.isPending;
   const recommendationError = recError?.message || refreshMutation.error?.message || null;
 
+  const nextRefreshDate = recData?.generatedAt
+    ? new Date(new Date(recData.generatedAt).getTime() + 5 * 24 * 60 * 60 * 1000)
+    : null;
+  const canRefreshNow = nextRefreshDate ? new Date() >= nextRefreshDate : true;
+  const nextRefreshLabel = nextRefreshDate && !canRefreshNow
+    ? `Available ${nextRefreshDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+    : null;
+
   useEffect(() => {
     const fetchProfile = async () => {
       const token = localStorage.getItem("token");
@@ -298,12 +306,12 @@ const Profile = () => {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-slate-400 dark:text-slate-500">
-              No skills added yet.{" "}
-              <button onClick={() => setShowEditModal(true)} className="text-blue-600 dark:text-blue-400 font-medium">
-                Add skills
+            <div className="flex flex-col items-center justify-center py-6 gap-2 text-center">
+              <p className="text-sm text-slate-500 dark:text-slate-400">No skills added yet</p>
+              <button onClick={() => setShowEditModal(true)} className="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline">
+                + Add your first skill
               </button>
-            </p>
+            </div>
           )}
         </div>
 
@@ -330,12 +338,12 @@ const Profile = () => {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-slate-400 dark:text-slate-500">
-              No interests selected.{" "}
-              <button onClick={() => setShowEditModal(true)} className="text-blue-600 dark:text-blue-400 font-medium">
-                Add interests
+            <div className="flex flex-col items-center justify-center py-6 gap-2 text-center">
+              <p className="text-sm text-slate-500 dark:text-slate-400">No interests selected yet</p>
+              <button onClick={() => setShowEditModal(true)} className="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline">
+                + Add your interests
               </button>
-            </p>
+            </div>
           )}
         </div>
       </div>
@@ -366,14 +374,20 @@ const Profile = () => {
           </h2>
           {showRecommendations && (
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => refreshMutation.mutate()}
-                disabled={recommendationLoading}
-                className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100 dark:bg-transparent dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3 h-3 ${recommendationLoading ? "animate-spin" : ""}`} />
-                Refresh
-              </button>
+              <div className="flex flex-col items-end gap-0.5">
+                <button
+                  onClick={() => refreshMutation.mutate()}
+                  disabled={recommendationLoading || !canRefreshNow}
+                  title={nextRefreshLabel || "Refresh recommendations"}
+                  className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100 dark:bg-transparent dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RefreshCw className={`w-3 h-3 ${recommendationLoading ? "animate-spin" : ""}`} />
+                  Refresh
+                </button>
+                {nextRefreshLabel && (
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">{nextRefreshLabel}</span>
+                )}
+              </div>
               <button
                 onClick={() => setShowRecommendations(false)}
                 className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
